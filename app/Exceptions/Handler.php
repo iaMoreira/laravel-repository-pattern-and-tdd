@@ -52,9 +52,8 @@ class Handler extends ExceptionHandler
     {
         if ($exception instanceof BaseException) {
             return $this->responseJsonWithError($exception->getMessage(), $exception->getCode());
-
-            //TokenExpiredException
         }
+        
         return parent::render($request, $exception);
     }
 

@@ -2,63 +2,98 @@
 
 namespace App\Http\Controllers;
 
-use App\Exceptions\BaseException;
-use App\Repository\BaseRepository;
-use Exception;
+use App\Repositories\Panel\BaseRepository;
+use App\Traits\ResponseTrait;
+use Illuminate\Foundation\Bus\DispatchesJobs;
+use Illuminate\Routing\Controller as ParentController;
+use Illuminate\Foundation\Validation\ValidatesRequests;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
-abstract class BaseController extends Controller
+use Illuminate\Support\Facades\Validator;
+abstract class BaseController extends ParentController
 {
+    use ResponseTrait, AuthorizesRequests, DispatchesJobs, ValidatesRequests;
+    
     protected $repository;
 
-    public function __construct(BaseRepository $repository)
-    {
-        $this->repository = $repository;
-    }
+    /**
+     * Instance that extends Illuminate\Http\Resources\Json\JsonResource
+     *
+     * @var Illuminate\Http\Resources\Json\JsonResource
+     */
+    protected $resource;
 
     public function index(Request $request)
     {
-        $filters = (array) $request->all();
-
-        $models = $this->repository->findAll($filters);
-        return $this->successResponse($models);
-    }
-
-    public function store(Request $request)
-    {
         $data = $request->all();
-
-        DB::beginTransaction();
-        try {
-            $model = $this->repository->store($data);
-            DB::commit();
-            return $this->successResponse($model, 201);
-        } catch (Exception $ex){
-            DB::rollBack();
-            return $this->erroResponse($ex);
-        }
+        $itens = $this->repository->findBy($data);
+        return $this->respondWithCollection($itens, $this->resource);
     }
 
     public function show($id)
     {
-        $model = $this->repository->findOne($id);
-        return $this->successResponse($model);
+        $item = $this->repository->findOne($id);
+
+        if ($item) {
+            return $this->respondWithObject($item, $this->resource);
+        } else {
+            return $this->responseNotFound(['id' => $id]);
+        }
+    }
+
+    public function store(Request $request)
+    {
+        // Validation
+        $validatorResponse = $this->validateRequest($request);
+
+        // Send failed response if empty request
+        if (empty($request->all())) {
+            return $this->responseEmpty();
+        }
+
+        // Send failed response if validation fails and return array of errors
+        if (!empty($validatorResponse)) {
+            return $this->responseValidation($validatorResponse);
+        }
+        $data = $request->all();
+
+        //Begin Database Operations
+        DB::beginTransaction();
+        try {
+            $model = $this->repository->store($data);
+            DB::commit();
+            return $this->setStatusCode(201)->respondWithObject($model, $this->resource);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->responseErrorException($e);
+        }
     }
 
     public function update(Request $request, $id)
     {
+        // Validation
+        $validatorResponse = $this->validateRequest($request, $id);
         $data = $request->all();
-        // valida requisição
+
+        // Send failed response if empty request
+        if (empty($data)) {
+            return $this->responseEmpty();
+        }
+
+        // Send failed response if validation fails and return array of errors
+        if (!empty($validatorResponse)) {
+            return $this->responseValidation($validatorResponse);
+        }
 
         DB::beginTransaction();
         try {
-            $updatedModel = $this->repository->update($id, $data);
-            return $this->successResponse($updatedModel);
-        } catch (Exception $ex){
+            $model = $this->repository->update($id, $data);
+            DB::commit();
+            return $this->respondWithObject($model, $this->resource);
+        } catch (\Exception $e) {
             DB::rollBack();
-            return $this->erroResponse($ex);
-
+            return $this->responseErrorException($e);
         }
     }
 
@@ -68,44 +103,36 @@ abstract class BaseController extends Controller
         try {
             $this->repository->delete($id);
             DB::commit();
-            return $this->successResponse(null, 204);
-        } catch (Exception $ex){
+            return $this->responseDeleted();
+        } catch (\Exception $e) {
             DB::rollBack();
-            return $this->erroResponse($ex);
+            return $this->responseErrorException($e);
         }
     }
 
-
-    private function successResponse($data, $code = 200)
+    protected function validateRequest(Request $request, int $id = null)
     {
-        return response()->json([
-            'status'        => true,
-            'code'          => $code,
-            'data'          => $data,
-        ], $code);
+        //Perform Validation
+        $validator = Validator::make(
+            $request->all(),
+            $this->repository->getRules($id)
+        );
+        return $this->getValidationErrors($validator);
     }
 
-    private function erroResponse($message = 'API.internal_error', $code = 500)
+    public function getValidationErrors($validator)
     {
-        return response()->json([
-            'status'        => false,
-            'code'          => 500,
-            'message'       => $message
-        ], $code);
-    }
+        return $validator->errors()->getMessages();
+        // $result = [];
+        // if ($validator->fails()) {
+        //     $errorTypes = $validator->failed();
+        //     $messages = $validator->errors()->getMessages();
+        //     // crete error message by using key and value
+        //     foreach ($errorTypes as $key => $value) {
+        //         $result[$key] = $value;
+        //     }
+        // }
 
-    protected function errorExceptionResponse(Exception $ex)
-    {
-        $message = 'API.unable_complete_operation';
-        $code = 500;
-        if($ex instanceof BaseException) {
-            $message = $ex->getMessage();
-            $code = $ex->getCode();
-        }
-        return response()->json([
-            'status'        => false,
-            'code'          => $code,
-            'message'       => $message
-        ]);
+        // return $result;
     }
 }
