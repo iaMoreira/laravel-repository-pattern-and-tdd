@@ -7,7 +7,9 @@ use App\Http\Resources\ProductResource;
 use App\Models\Client;
 use App\Models\Product;
 use App\Repositories\AbstractRepository;
+use App\Repositories\AuthRepository;
 use App\Repositories\ClientRepository;
+use App\Repositories\Contracts\AuthRepositoryInterface;
 use App\Repositories\Contracts\BaseRepository;
 use App\Repositories\Contracts\ClientRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
@@ -31,6 +33,8 @@ class RepositoryServiceProvider extends ServiceProvider
     public function register()
     {
         $this->app->bind(BaseRepository::class, AbstractRepository::class);
+
+        $this->app->bind(AuthRepositoryInterface::class, AuthRepository::class);
 
         // $this->app->bind(ProductRepositoryInterface::class, ProductRepository::class);
         $this->app->bind(ProductRepositoryInterface::class, function () {
