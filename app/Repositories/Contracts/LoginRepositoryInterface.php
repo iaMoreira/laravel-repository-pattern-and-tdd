@@ -2,7 +2,7 @@
 
 namespace App\Repositories\Contracts;
 
-interface AuthRepositoryInterface
+interface LoginRepositoryInterface
 {
     public function login(array $credencials): array;
 

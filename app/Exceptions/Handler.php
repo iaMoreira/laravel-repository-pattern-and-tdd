@@ -53,15 +53,19 @@ class Handler extends ExceptionHandler
         if ($exception instanceof BaseException) {
             return $this->responseJsonWithError($exception->getMessage(), $exception->getCode());
         }
-        
+
+        if ($exception instanceof \InvalidArgumentException) {
+            return $this->responseJsonWithError('API.validation_error', 400, json_decode($exception->getMessage()));
+        }
+
         return parent::render($request, $exception);
     }
 
-    public function responseJsonWithError($message, $code = 400)
+    public function responseJsonWithError($message, $code = 400, $data = null)
     {
         $data_error['status'] = 'error';
         $data_error['code'] = $code;
-        $data_error['data'] = null;
+        $data_error['data'] = $data;
         $data_error['message'] = $message;
         return response()->json($data_error, $code);
     }

@@ -84,9 +84,7 @@ abstract class AbstractRepository implements BaseRepository
      */
     public function findOneBy(array $criteria): ?BaseModel
     {
-        return $this->model
-            ->where($criteria)
-            ->first();
+        return $this->model->where($criteria)->first();
     }
 
     /**
@@ -136,7 +134,6 @@ abstract class AbstractRepository implements BaseRepository
         $keys = array_keys($data);
 
         foreach ($keys as $key) {
-            // update only fillAble properties
             if (!in_array($key, $filledProperties)) {
                 unset($data[$key]);
             }
@@ -161,7 +158,6 @@ abstract class AbstractRepository implements BaseRepository
         $filledProperties = $this->model->getFillable();
         $keys = array_keys($data);
         foreach ($keys as $key) {
-            // update only fillAble properties
             if (in_array($key, $filledProperties)) {
                 $model->$key = $data[$key];
             }

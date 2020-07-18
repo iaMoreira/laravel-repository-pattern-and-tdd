@@ -1,26 +1,27 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
-use App\Repositories\Contracts\AuthRepositoryInterface;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginFormRequest;
+use App\Repositories\Contracts\LoginRepositoryInterface;
 use App\Traits\ResponseTrait;
-use Illuminate\Http\Request;
 
-class AuthController extends Controller
+class LoginController extends Controller
 {
     use ResponseTrait;
 
     /**
-     * @var AuthRepositoryInterface
+     * @var LoginRepositoryInterface
      */
     private $repository;
 
-    public function __construct(AuthRepositoryInterface $repository)
+    public function __construct(LoginRepositoryInterface $repository)
     {
         $this->repository = $repository;
     }
 
-    public function login(Request $request)
+    public function login(LoginFormRequest $request)
     {
         $credentials = $request->only('email', 'password');
 

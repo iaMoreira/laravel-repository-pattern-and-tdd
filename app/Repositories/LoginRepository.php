@@ -3,10 +3,10 @@
 namespace App\Repositories;
 
 use App\Exceptions\BaseException;
-use App\Repositories\Contracts\AuthRepositoryInterface;
+use App\Repositories\Contracts\LoginRepositoryInterface;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-class AuthRepository implements AuthRepositoryInterface
+class LoginRepository implements LoginRepositoryInterface
 {
     public function login(array $credentials): array
     {
